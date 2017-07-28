@@ -1,0 +1,110 @@
+# -*- coding:utf-8 -*- 
+__author__ = 'Isolation'
+#coding = utf-8
+
+import urllib
+from selenium import webdriver
+from selenium.webdriver.support.select import Select
+import time
+from bs4 import BeautifulSoup
+import MySQLdb
+
+class spider:
+    driver = webdriver.PhantomJS()
+    driver2 = webdriver.PhantomJS()
+    page = 0
+    driver.set_window_size("1920","1080")
+    driver2.set_window_size("1920","1080")
+    c = {'娱乐八卦': 'funinfo' ,'天涯杂谈':'free','情感天地':'feeling','贴图专区':'no04',
+         '国际观察':'worldlook','经济论坛':'develop','时尚资讯':'no11','莲蓬鬼话':'16',
+         '影视评论':'filmtv','视频专区':'665','煮酒论史':'no05','股市论谈':'stocks'
+         }
+    conn  = MySQLdb.Connect(                #创建与mysql数据库的连接
+            host = '127.0.0.1',	
+            port = 3306,
+            user = 'root',
+            passwd = '',			#密码
+            db = 'spider',
+            charset = 'utf8'
+    )
+    cur = conn.cursor()                     #创建游标
+    def Login(self, username, psw):
+
+        self.driver.get("http://bbs.tianya.cn/")
+        time.sleep(1)
+        click_botton = self.driver.find_element_by_id("js_login")
+        click_botton.click()
+        time.sleep(1)
+        elem_user = self.driver.find_element_by_id("vwriter")                                   #账号
+        elem_user.send_keys(username)
+        elem_pwd = self.driver.find_element_by_id("vpassword")                                  #密码
+        elem_pwd.send_keys(psw)
+        click_botton = self.driver.find_element_by_class_name("loginWin-submit-btn")
+        click_botton.click()
+        print "login success!"
+        time.sleep(1)
+    def Post(self, list):                           #提交帖子
+        self.driver.get("http://bbs.tianya.cn/compose.jsp")
+        time.sleep(1)
+        title = self.driver.find_element_by_xpath('//input[@class="bbsTitle fl"]')
+        title.send_keys(list[0].decode("utf8"))
+        content = self.driver.find_element_by_id("textAreaContainer")
+        content.send_keys(list[1].decode("utf8"))
+        selectCompose = self.driver.find_element_by_tag_name("select")
+        Select(selectCompose).select_by_value(self.c[list[2]])
+        if(list[3] == "原创"):
+            self.driver.find_element_by_xpath('//input[@value="1"]').click()     #原创
+        elif(list[3] == "转载"):
+            self.driver.find_element_by_xpath('//input[@value="0"]').click()     #转载
+        send = self.driver.find_element_by_xpath('//button[@class="common-submitBtn fr"]')
+        send.click()
+        #self.driver.get_screenshot_as_file("screenshot.png")                   #截图
+        #self.driver.quit()
+    def Get(self, url):
+        self.driver.get(url)
+        time.sleep(1)
+        page = self.driver.page_source.encode("gbk","ignore")
+        soup = BeautifulSoup(page,'html.parser',from_encoding="gb18030")
+        title = soup.find("span",class_="s_title")                      #获取帖子标题
+        print title.get_text()
+        content = soup.find("div",class_="bbs-content clearfix")            #获取帖子内容
+        #print content.get_text('\n', '<br/>')
+        self.cur.execute('insert into y_search_tianya(ttitle, tcontent, turl) values(%s, %s, %s)',(title.get_text(),content.get_text(),url,))
+        self.conn.commit()
+        '''
+        f = open("content.docx", 'a')                                       #写入文件
+        f.write(content.get_text('\n', '<br/>').encode("utf8"))
+        f.close()
+        #self.driver.quit()
+        '''
+    def Search(self, con):
+        caozuo = """CREATE TABLE y_search_tianya(
+	        tid INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	        ttitle VARCHAR(256),
+	        tcontent VARCHAR(8192),
+	        turl VARCHAR(128)
+	    )"""
+        self.cur.execute(caozuo)
+        self.conn.commit()
+        rawurl = urllib.quote(con)                                          #URL转码
+        url = "http://search.tianya.cn/bbs?q=%s"%rawurl
+        self.driver2.get(url)
+        self.page = 1
+        while self.page <= 2:
+            print u"开始爬取第%s页"%self.page
+            cur_page = self.driver2.page_source.encode("gbk","ignore")
+            soup = BeautifulSoup(cur_page,'html.parser',from_encoding="gb18030")
+            urls = soup.find_all("h3")
+            for item in urls:
+                list_tmp = item.find_all("a")
+                for url in list_tmp:
+                    self.Get(url.get("href"))                               #获取帖子URL
+            next_bottom = self.driver2.find_element_by_xpath('//div[@class="long-pages"]/a[7]')            #翻页
+            next_bottom.click()
+            self.page = self.page + 1                                        #页面计数
+
+
+        self.cur.close()
+        self.conn.close()
+        self.driver2.quit()
+        self.driver.quit()
