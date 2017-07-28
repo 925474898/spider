@@ -1,0 +1,71 @@
+# -*- coding:utf-8 -*- 
+__author__ = 'Isolation'
+#coding = utf-8
+
+import urllib
+from selenium import webdriver
+from selenium.webdriver.support.select import Select
+import time
+from bs4 import BeautifulSoup
+import MySQLdb
+
+class spider():
+    driver = webdriver.PhantomJS()
+    driver2 = webdriver.PhantomJS()
+
+    page = 0
+    conn  = MySQLdb.Connect(                #创建与mysql数据库的连接
+            host = '127.0.0.1',
+            port = 3306,
+            user = 'root',
+            passwd = '',				#密码
+            db = 'spider',
+            charset = 'utf8'
+    )
+    cur = conn.cursor()                     #创建游标
+    def Get(self,url):
+        self.driver.get(url)
+        page = self.driver.page_source
+        soup = BeautifulSoup(page,'html.parser',from_encoding="gb18030")
+        title = soup.find("h3",class_="core_title_txt pull-left text-overflow ")                      #获取帖子标题
+        if title == None:
+            title = soup.find("h1",class_="core_title_txt ")
+        if title == None:
+            title = soup.find("h3")
+        content = soup.find("div",class_="d_post_content j_d_post_content d_post_content_bold")            #获取帖子内容
+        if content == None:
+            content = soup.find("div",class_="d_post_content j_d_post_content d_post_content_bold clearfix")
+        if content == None:
+            content = soup.find("div",class_="post_bubble_middle")
+        self.cur.execute('insert into y_search_tieba(btitle, bcontent, burl) values(%s, %s, %s)',(title.get_text(),content.get_text(),url,))
+        self.conn.commit()
+    def Search(self, con):
+        caozuo = """CREATE TABLE y_search_tieba(
+	        bid INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	        btitle VARCHAR(256),
+	        bcontent VARCHAR(8192),
+	        burl VARCHAR(128)
+	    )"""
+        self.cur.execute(caozuo)
+        self.conn.commit()
+        rawurl = urllib.quote(con.decode("utf8").encode("GBK"))               #百度网页是GBK编码                         #URL转码
+        url = "http://tieba.baidu.com/f/search/res?isnew=1&kw=&qw=%s&un=&rn=10&pn=0&sd=&ed=&sm=1&only_thread=1"% rawurl
+        self.driver2.get(url)
+        #self.driver.find_element_by_xpath('//a[@class="bluelink"]')
+        self.page = 1
+        while self.page <= 2:
+            print u"开始爬取第%s页"%self.page
+            cur_page = self.driver2.page_source
+            soup = BeautifulSoup(cur_page,'html.parser',from_encoding="gb18030")
+            parturl = soup.find_all(attrs={'class':'bluelink'})
+            for a in parturl:
+                if (a.get("href")[1] == "p"):
+                    url = "http://tieba.baidu.com%s"%a.get("href")
+                    self.Get(url)
+            nextbottom = self.driver2.find_element_by_xpath('//a[@class="next"]')
+            nextbottom.click()
+            self.page = self.page + 1                                        #页面计数
+        self.driver2.quit()
+        self.driver.quit()
+        self.cur.close()
+        self.conn.close()
