@@ -1,0 +1,48 @@
+# -*- coding:utf-8 -*- 
+__author__ = 'Isolation'
+#coding = utf-8
+
+
+import urllib2
+from selenium import webdriver
+import time
+
+class spider:
+    def Login(self,username,psw):
+
+        driver = webdriver.PhantomJS()
+        driver.get("http://mail.163.com/")
+        time.sleep(5)
+        print driver.title
+
+        driver.switch_to.frame(3)      #163登陆框是使用iframe进行嵌套的，所以需要先切换到该iframe
+        driver.save_screenshot("screenshot.png")
+        #wait = WebDriverWait(driver, 10)
+        #elem_user = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".email")))
+        elem_user = driver.find_element_by_name("email")
+        elem_user.send_keys(username)
+        elem_pwd = driver.find_element_by_name("password")
+        elem_pwd.send_keys(psw)
+        time.sleep(3)
+        click_button = driver.find_element_by_id('dologin')
+        click_button.click()
+        driver.switch_to_default_content()
+        print "login seccess!"
+        time.sleep(5)
+        '''
+        cookies = [item["name"] + "=" + item["value"] for item in driver.get_cookies()]
+        cur_cookies = '; '.join(item for item in cookies)
+        #cur_cookies = driver.get_cookies()          #获取网站cookie
+        print cur_cookies
+        homeurl = driver.current_url
+        print "current_url is %s"% homeurl
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0',
+            'cookie':cur_cookies
+        }
+        req = urllib2.Request(homeurl, headers=headers)
+        response = urllib2.urlopen(req)
+        text = response.read()
+        print text.decode('utf8').encode("gbk","ignore")
+        '''
+        driver.quit()
