@@ -1,0 +1,36 @@
+# -*- coding:utf-8 -*- 
+__author__ = 'Isolation'
+#coding = utf-8
+
+import driver_interface
+
+#天涯论坛
+
+#a = driver_interface.driver("spider_tianya")        #动态查找驱动
+#a.login("","")                #登陆
+#post参数：["标题","内容","栏目","原创或转载"]
+#a.post(["啊啊啊啊","啊啊啊啊","娱乐八卦","原创"])                                           #发帖
+#a.get("http://bbs.tianya.cn/post-develop-2233368-1.shtml")      #获取帖子内容
+#a.search("啊啊啊")                                    #搜索帖子
+
+
+
+
+#微博
+'''
+a = driver_interface.driver("spider_weibo")     #动态查找驱动
+a.login("","")           #登陆
+a.post(["测试"])                                        #发微博
+'''
+
+'''
+#163
+a = driver_interface.driver("spider_163")
+a.login('','')
+'''
+'''
+#贴吧
+#a = spider_tieba.spider()
+a = driver_interface.driver("spider_tieba")
+a.search("啊啊啊")
+'''
