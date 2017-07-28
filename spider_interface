@@ -1,0 +1,31 @@
+# -*- coding:utf-8 -*- 
+__author__ = 'Isolation'
+#coding = utf-8
+
+import importlib
+
+class driver(object):
+    driverobj = None
+    sdriver = None
+    spider = None
+    def __init__(self,drivename):
+        try:
+            self.driverobj = drivename
+        except Exception as e:
+            print "driver find Error"
+    def dynamic_import(self,driverobj1):            #动态导入模块
+        return importlib.import_module(driverobj1)
+    def login(self, username, psw):                     #登陆
+        self.sdriver = self.dynamic_import(self.driverobj)
+        self.spider = self.sdriver.spider()
+        self.spider.Login(username, psw)
+    def post(self,list):                                #发帖
+        self.spider.Post(list)
+    def get(self,url):                                  #输入帖子URL，爬取帖子
+        self.sdriver = self.dynamic_import(self.driverobj)
+        self.spider = self.sdriver.spider()
+        self.spider.Get(url)
+    def search(self,content):                           #输入关键字爬取帖子
+        self.sdriver = self.dynamic_import(self.driverobj)
+        self.spider = self.sdriver.spider()
+        self.spider.Search(content)
